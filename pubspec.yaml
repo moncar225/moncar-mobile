@@ -1,0 +1,55 @@
+name: moncar_mobile
+description: "MON CAR — workspace racine du monorepo mobile (apps client/pro + packages core_*)."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+# Pub workspace : une seule résolution de dépendances pour tout le monorepo.
+workspace:
+  - apps/client
+  - apps/pro
+  - packages/core_api
+  - packages/core_data
+  - packages/core_qr
+  - packages/core_geo
+  - packages/core_ui
+
+dev_dependencies:
+  melos: ^7.0.0
+
+# Melos en mode pub workspace : les scripts vivent dans le pubspec racine.
+melos:
+  packages:
+    - apps/**
+    - packages/**
+
+  scripts:
+    analyze:
+      description: Analyse statique de chaque app et package.
+      exec: flutter analyze .
+      packageFilters:
+        dirExists: lib
+
+    test:
+      description: Tests unitaires de chaque app et package.
+      exec: flutter test
+      packageFilters:
+        dirExists: test
+
+    format:
+      description: Formatage de tout le code Dart.
+      exec: dart format .
+
+    gen:
+      description: Génération de code (Drift, etc.).
+      exec: dart run build_runner build --delete-conflicting-outputs
+      packageFilters:
+        dependsOn: build_runner
+
+# cupertino_ui 1.1.0 utilise un symbole (awaitNotRequired) absent du Flutter
+# 3.44.5 installé ; à retirer après montée du SDK Flutter.
+dependency_overrides:
+  cupertino_ui: 1.0.2
+  material_ui: 1.2.0
