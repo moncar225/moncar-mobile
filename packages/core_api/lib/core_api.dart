@@ -9,3 +9,5 @@ library;
 export 'src/api_client.dart';
 export 'src/api_error_messages.dart';
 export 'src/api_exception.dart';
+export 'src/idempotency.dart';
+export 'src/secure_session_store.dart';

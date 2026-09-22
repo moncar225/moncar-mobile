@@ -46,3 +46,6 @@ app.*.map.json
 
 # moncar-web lives inside this folder but is its own separate repo
 /moncar-web/
+
+# PDF de référence volumineux (gérés ailleurs)
+*.pdf
