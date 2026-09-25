@@ -1,5 +1,6 @@
 package com.moncar.moncar_client
 
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-class MainActivity : FlutterActivity()
+// FlutterFragmentActivity : requis par local_auth (BiometricPrompt).
+class MainActivity : FlutterFragmentActivity()

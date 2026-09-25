@@ -1,0 +1,6 @@
+# Copier en android/key.properties (ignoré par git) puis remplir.
+# storeFile : chemin absolu, ou relatif au dossier android/app.
+storeFile=C:/MON_CAR/keys/moncar-upload.jks
+storePassword=CHANGE_ME
+keyAlias=upload
+keyPassword=CHANGE_ME
