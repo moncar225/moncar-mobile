@@ -24,8 +24,8 @@ dans le **Journal** et mettre à jour les sections concernées.
 | Données | ⚠️ Simulées (`MockProApi`) — contrat OpenAPI pas encore gelé |
 | Hors ligne | File d'actions locale + synchronisation sans doublon |
 | Qualité | `flutter analyze` : aucun problème · `flutter test` : 12 tests verts |
-| Vérifié sur appareil réel | **Non** (caméra, GPS réel, voix, photos non essayés sur téléphone) |
-| Commit Git | Aucun (modifications locales non commitées) |
+| Vérifié sur appareil réel | Lancée sur Infinix X6816 (Android 11) ; caméra, GPS réel, voix et photos pas encore essayés |
+| Commit Git | Oui (dépôt `moncar-mobile`) |
 
 ---
 
@@ -173,7 +173,7 @@ permanent.
 - Textes CGU / confidentialité à fournir (**A-13**).
 - Politique de mot de passe et durée du code SMS à confirmer (**T-8**).
 - Icônes de l'app (Android, iOS, web) encore celles de Flutter par défaut.
-- Aucun essai sur téléphone réel.
+- Schémas iOS `dev` / `recette` / `prod` à créer sur un Mac.
 
 ---
 
@@ -190,6 +190,19 @@ flutter test
 ---
 
 ## 8. Journal
+
+### 25/09/2026 — Sprint 1 : environnements, supervision, galerie
+- **Environnements** : flavors Android `dev` (par défaut) / `recette` / `prod`
+  et fichiers `config/<env>.json` lus par `AppEnvironment` (core_api).
+  Voir `config/README.md`.
+- **Crashlytics** : app PRO enregistrée dans Firebase (`mon-car-a5a97`,
+  Android + iOS) ; plantages remontés hors mode debug.
+- **Sentry** : actif si un DSN est fourni à la compilation ; étiquettes
+  `app`, `env` et `profil` (poste actif).
+- **Galerie du design system** : route `/galerie`, lien dans le profil
+  (hors production). Version affichée avec l'environnement.
+- **CI** : workflow GitHub Actions `mobile.yml` (format, analyse, tests, APK).
+- Message d'erreur 410 ajouté à `core_api` (aligné sur le web).
 
 ### 25/09/2026 — Refonte connexion / inscription
 - Connexion reprise de l'app client : numéro +225 + mot de passe,

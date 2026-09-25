@@ -1,0 +1,92 @@
+# CI mobile MON CAR (roadmap INF-012 / Sprint 1) :
+#  - à chaque PR et push sur main : format, analyse statique, tests ;
+#  - sur main (et à la demande) : APK debug « dev » des deux apps, en artefacts.
+name: Mobile
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: mobile-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: '3.44.5'
+
+jobs:
+  qualite:
+    name: Format, analyse, tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Dépendances (workspace)
+        run: flutter pub get
+
+      - name: Format
+        run: dart format --output=none --set-exit-if-changed apps packages
+
+      - name: Analyse statique (zéro remarque)
+        run: flutter analyze
+
+      - name: Tests
+        run: |
+          for dir in apps/* packages/*; do
+            if [ -d "$dir/test" ]; then
+              echo "::group::flutter test — $dir"
+              (cd "$dir" && flutter test) || exit 1
+              echo "::endgroup::"
+            fi
+          done
+
+  apk:
+    name: APK debug (${{ matrix.app }})
+    needs: qualite
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [client, pro]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Dépendances (workspace)
+        run: flutter pub get
+
+      - name: Construire l'APK (flavor dev)
+        working-directory: apps/${{ matrix.app }}
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN_MOBILE }}
+        run: >
+          flutter build apk --debug --flavor dev
+          --dart-define-from-file=../../config/dev.json
+          --dart-define=MONCAR_SENTRY_DSN="$SENTRY_DSN"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: moncar-${{ matrix.app }}-dev-debug-${{ github.run_number }}
+          path: apps/${{ matrix.app }}/build/app/outputs/flutter-apk/app-dev-debug.apk
+          retention-days: 14

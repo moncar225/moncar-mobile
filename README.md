@@ -32,6 +32,31 @@ dart run melos run test
 dart run melos run gen    # génération de code (Drift) quand le schéma sera défini
 ```
 
+## Environnements (dev · recette · prod)
+
+Flavors Android `dev` / `recette` / `prod` + `--dart-define-from-file=../../config/<env>.json`.
+Détails, commandes et limites : [`config/README.md`](config/README.md).
+
+## Supervision des plantages
+
+- **Crashlytics** (Firebase, projet `mon-car-a5a97`) dans les deux apps ;
+  désactivé en mode debug dans l'app PRO.
+- **Sentry** dans les deux apps, actif seulement si `MONCAR_SENTRY_DSN` est
+  fourni à la compilation (secret CI `SENTRY_DSN_MOBILE`). Aucune donnée
+  personnelle envoyée. Étiquettes : `app`, `env`, et `profil` pour l'app PRO.
+
+## Galerie du design system
+
+Écran `/galerie` dans les deux apps (dev et recette uniquement) : couleurs,
+typographie, composants, états et messages d'erreur API. Accès : Profil
+(app PRO) ou Paramètres › À propos (app client).
+
+## Intégration continue
+
+`.github/workflows/mobile.yml` : format, `flutter analyze` (zéro remarque) et
+tests à chaque PR ; APK debug `dev` des deux apps en artefacts sur `main`.
+Secret GitHub facultatif : `SENTRY_DSN_MOBILE`.
+
 ## Règles projet (rappel)
 
 - Backend = source de vérité. Aucun endpoint inventé : les chemins d'API

@@ -5,6 +5,10 @@
 // Les écrans finaux devront consommer l'API réelle à la place.
 // ============================================================
 
+// Noms en MAJUSCULES repris tels quels du prototype TypeScript ; fichier
+// voué à disparaître au branchement de l'API.
+// ignore_for_file: constant_identifier_names, non_constant_identifier_names
+
 library;
 
 import '../domain/models.dart';
