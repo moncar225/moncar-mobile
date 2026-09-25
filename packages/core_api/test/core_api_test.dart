@@ -18,24 +18,30 @@ void main() {
     });
 
     test('code inconnu → message générique', () {
-      expect(
-        messageForStatusCode(599),
-        contains('erreur inattendue'),
-      );
+      expect(messageForStatusCode(599), contains('erreur inattendue'));
     });
 
-    test('le message serveur (fallback) prime pour les codes non standards', () {
-      expect(
-        messageForStatusCode(507, fallback: 'Stockage insuffisant.'),
-        'Stockage insuffisant.',
-      );
-    });
+    test(
+      'le message serveur (fallback) prime pour les codes non standards',
+      () {
+        expect(
+          messageForStatusCode(507, fallback: 'Stockage insuffisant.'),
+          'Stockage insuffisant.',
+        );
+      },
+    );
   });
 
   group('ApiException', () {
     test('isNetworkError uniquement pour statusCode -1', () {
-      const network = ApiException(statusCode: -1, message: 'Connexion impossible.');
-      const http = ApiException(statusCode: 404, message: 'Ressource introuvable.');
+      const network = ApiException(
+        statusCode: -1,
+        message: 'Connexion impossible.',
+      );
+      const http = ApiException(
+        statusCode: 404,
+        message: 'Ressource introuvable.',
+      );
 
       expect(network.isNetworkError, isTrue);
       expect(http.isNetworkError, isFalse);
