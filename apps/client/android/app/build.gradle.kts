@@ -38,6 +38,28 @@ android {
         versionName = flutter.versionName
     }
 
+    // Environnements de compilation (roadmap Sprint 1) : `--flavor dev|recette|prod`
+    // + `--dart-define-from-file=../../config/<env>.json` (URL d'API, Sentry).
+    // Même applicationId pour les trois : la config Firebase (google-services.json)
+    // ne connaît que celui-ci. Les trois variantes ne coexistent donc pas sur
+    // un même téléphone ; seul le nom affiché change.
+    flavorDimensions += "env"
+    productFlavors {
+        create("dev") {
+            dimension = "env"
+            isDefault = true
+            manifestPlaceholders["appName"] = "MON CAR Dev"
+        }
+        create("recette") {
+            dimension = "env"
+            manifestPlaceholders["appName"] = "MON CAR Recette"
+        }
+        create("prod") {
+            dimension = "env"
+            manifestPlaceholders["appName"] = "MON CAR"
+        }
+    }
+
     signingConfigs {
         if (keystorePropertiesFile.exists()) {
             create("release") {
