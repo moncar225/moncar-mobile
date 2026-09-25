@@ -23,8 +23,8 @@ class MoncarLoader extends StatelessWidget {
           Text(
             label!,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ],
@@ -33,6 +33,9 @@ class MoncarLoader extends StatelessWidget {
     if (fullScreen) {
       return Center(child: content);
     }
-    return Padding(padding: const EdgeInsets.all(24), child: Center(child: content));
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Center(child: content),
+    );
   }
 }

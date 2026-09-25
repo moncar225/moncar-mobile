@@ -9,8 +9,10 @@ class MoncarEmptyState extends StatelessWidget {
     this.icon = Icons.inbox_outlined,
     this.actionLabel,
     this.onAction,
-  }) : assert((actionLabel == null) == (onAction == null),
-            'actionLabel et onAction doivent être fournis ensemble.');
+  }) : assert(
+         (actionLabel == null) == (onAction == null),
+         'actionLabel et onAction doivent être fournis ensemble.',
+       );
 
   final String title;
   final String? message;
@@ -29,7 +31,11 @@ class MoncarEmptyState extends StatelessWidget {
           children: [
             Icon(icon, size: 48, color: theme.colorScheme.onSurfaceVariant),
             const SizedBox(height: 16),
-            Text(title, style: theme.textTheme.titleMedium, textAlign: TextAlign.center),
+            Text(
+              title,
+              style: theme.textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
             if (message != null) ...[
               const SizedBox(height: 8),
               Text(
