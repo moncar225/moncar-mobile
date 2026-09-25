@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:core_api/core_api.dart' show AppEnvironment;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show appFlavor;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -552,6 +554,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       ),
                     ],
                   ),
+                  if (!AppEnvironment.isProd) ...[
+                    const SizedBox(height: 8),
+                    MoncarButton(
+                      label: 'Galerie du design system',
+                      icon: Icons.palette_outlined,
+                      variant: MoncarButtonVariant.ghost,
+                      size: MoncarButtonSize.md,
+                      expand: true,
+                      onPressed: () => context.push('/galerie'),
+                    ),
+                  ],
                 ],
               ),
             ),

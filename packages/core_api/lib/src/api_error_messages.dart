@@ -5,7 +5,9 @@ const Map<int, String> apiErrorMessages = {
   401: 'Votre session a expiré. Veuillez vous reconnecter.',
   403: 'Accès interdit. Vous ne pouvez pas effectuer cette action.',
   404: 'Ressource introuvable.',
-  409: 'Conflit : les données ont changé entre-temps. Rechargez les données puis réessayez.',
+  409:
+      'Conflit : les données ont changé entre-temps. Rechargez les données puis réessayez.',
+  410: 'Cette ressource n’est plus disponible. Actualisez la page.',
   422: 'Les données envoyées sont invalides. Vérifiez les champs signalés.',
   429: 'Trop de requêtes. Veuillez patienter un instant avant de réessayer.',
   500: 'Une erreur est survenue côté serveur. Veuillez réessayer plus tard.',

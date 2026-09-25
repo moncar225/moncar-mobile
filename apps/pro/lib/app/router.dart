@@ -1,3 +1,5 @@
+import 'package:core_api/core_api.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -136,6 +138,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/profile', builder: (_, _) => const ProfilePage()),
           GoRoute(path: '/sync', builder: (_, _) => const SyncPage()),
           GoRoute(path: '/help', builder: (_, _) => const HelpPage()),
+          // Galerie du design system (dev / recette, lien dans le profil).
+          GoRoute(
+            path: '/galerie',
+            builder: (_, _) => MoncarGalleryPage(
+              subtitle: 'MON CAR PRO · ${AppEnvironment.current.label}',
+              errorMessages: apiErrorMessages,
+            ),
+          ),
           GoRoute(
             path: '/incidents',
             builder: (_, s) => IncidentsPage(

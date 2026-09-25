@@ -21,6 +21,7 @@ export 'src/components/moncar_rating.dart';
 export 'src/components/moncar_section_header.dart';
 export 'src/components/moncar_skeleton.dart';
 export 'src/components/moncar_success_state.dart';
+export 'src/gallery/moncar_gallery_page.dart';
 export 'src/theme/moncar_colors.dart';
 export 'src/theme/moncar_radius.dart';
 export 'src/theme/moncar_spacing.dart';

@@ -1,3 +1,4 @@
+import 'package:core_api/core_api.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -216,6 +217,16 @@ class ProfilePage extends ConsumerWidget {
           subtitle: 'Guide du poste, contacts',
           onTap: () => context.push('/help'),
         ),
+        if (!AppEnvironment.isProd) ...[
+          const SizedBox(height: 8),
+          _Tile(
+            icon: Icons.palette_outlined,
+            color: MoncarColors.brand,
+            title: 'Galerie du design system',
+            subtitle: "Composants, états et messages d'erreur",
+            onTap: () => context.push('/galerie'),
+          ),
+        ],
         if (kDemoMode) ...[
           const SizedBox(height: 8),
           _Tile(
@@ -245,7 +256,9 @@ class ProfilePage extends ConsumerWidget {
         const SizedBox(height: 16),
         Center(
           child: Text(
-            'MON CAR PRO v1.0.0 · PROSOFT ACADEMY',
+            AppEnvironment.isProd
+                ? 'MON CAR PRO v1.0.0 · PROSOFT ACADEMY'
+                : 'MON CAR PRO v1.0.0 · ${AppEnvironment.current.label}',
             style: TextStyle(fontSize: 12, color: MoncarColors.inkFaint),
           ),
         ),

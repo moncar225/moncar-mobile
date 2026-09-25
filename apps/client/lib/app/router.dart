@@ -1,3 +1,5 @@
+import 'package:core_api/core_api.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -64,7 +66,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     initialLocation: '/',
-    observers: [if (screenObserver != null) screenObserver],
+    observers: [?screenObserver],
     refreshListenable: auth,
     redirect: (context, state) {
       final path = state.matchedLocation;
@@ -349,6 +351,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (_, _) => const SettingsPage(),
           ),
         ],
+      ),
+      // Galerie du design system (dev / recette uniquement, lien dans
+      // Paramètres › À propos).
+      GoRoute(
+        path: '/galerie',
+        name: 'galerie',
+        builder: (_, _) => MoncarGalleryPage(
+          subtitle: 'MON CAR · ${AppEnvironment.current.label}',
+          errorMessages: apiErrorMessages,
+        ),
       ),
     ],
     errorBuilder: (_, state) => const _NotFoundPage(),
