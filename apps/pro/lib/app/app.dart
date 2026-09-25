@@ -5,6 +5,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/application/app_providers.dart';
+import '../core/application/session_controller.dart';
+import 'monitoring.dart';
 import 'router.dart';
 
 /// Racine de l'app MON CAR PRO (terrain des compagnies de transport).
@@ -21,6 +23,11 @@ class _MoncarProAppState extends ConsumerState<MoncarProApp>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    ref.listenManual(
+      activeRoleProvider,
+      (_, role) => setMonitoringProfile(role?.name),
+      fireImmediately: true,
+    );
   }
 
   @override

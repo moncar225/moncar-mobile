@@ -33,6 +33,9 @@ dependencies:
     path: ../../packages/core_qr
   core_geo:
     path: ../../packages/core_geo
+  firebase_core: ^4.15.0
+  firebase_crashlytics: ^5.4.0
+  sentry_flutter: ^9.30.1
 
 dev_dependencies:
   flutter_test:
@@ -41,6 +44,9 @@ dev_dependencies:
   mocktail: ^1.0.5
 
 flutter:
+  # Variante lancée par `flutter run` / `flutter build` sans --flavor
+  # (voir config/README.md). Sur iOS, nécessite les schémas Xcode.
+  default-flavor: dev
   uses-material-design: true
   assets:
     - assets/moncar-logo.png

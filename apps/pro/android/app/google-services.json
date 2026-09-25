@@ -1,0 +1,82 @@
+{
+  "project_info": {
+    "project_number": "721652556891",
+    "project_id": "mon-car-a5a97",
+    "storage_bucket": "mon-car-a5a97.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:721652556891:android:7fb9fc859e9196645a8b7e",
+        "android_client_info": {
+          "package_name": "com.moncar.moncar_client"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "721652556891-ji05unu0hdmo398crffm2bmga309rdb0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCG1IJKQZP91WmTTkrUuQV8py_dkRBhZFQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "721652556891-ji05unu0hdmo398crffm2bmga309rdb0.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "721652556891-aip9ouap7ffd3a28eg81mpj8s9grave3.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.moncar.moncarPro"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:721652556891:android:97cdd17cb885f84b5a8b7e",
+        "android_client_info": {
+          "package_name": "com.moncar.moncar_pro"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "721652556891-ji05unu0hdmo398crffm2bmga309rdb0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCG1IJKQZP91WmTTkrUuQV8py_dkRBhZFQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "721652556891-ji05unu0hdmo398crffm2bmga309rdb0.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "721652556891-aip9ouap7ffd3a28eg81mpj8s9grave3.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.moncar.moncarPro"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
