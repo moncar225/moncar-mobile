@@ -6,6 +6,12 @@
 	<string>La caméra sert à scanner les billets et à photographier l’état des véhicules loués.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Les photos d’état du véhicule peuvent être jointes aux remises et restitutions.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Pendant le voyage actif, votre position continue d’être partagée avec la compagnie même écran verrouillé (suivi, ETA, alertes d’arrêt). Le suivi s’arrête à la clôture du voyage.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Votre position est partagée avec la compagnie uniquement pendant le voyage actif (suivi, ETA, alertes d’arrêt).</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>

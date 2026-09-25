@@ -1,10 +1,13 @@
 // ============================================================
 // MON CAR PRO — Suivi GPS du chauffeur + alertes vocales.
 //
-// Côté app : collecte des positions pendant le voyage actif, stockage
-// local et envoi par lots (POST /pro/positions). Le calcul d'ETA et la
-// détection d'approche sont serveur (GPS-001/002) : ici, ⚠️ MOCK, une
-// simulation le long de l'axe pilote tient lieu de flux serveur.
+// Côté app (GPS-001, VOY-003) : collecte des positions UNIQUEMENT pendant
+// le voyage actif, en arrière-plan (service de premier plan Android, mode
+// arrière-plan iOS), fréquence adaptative (voir gps_policy.dart, ⚠️ T-5),
+// tampon local persistant et envoi par lots (POST /pro/positions).
+// Le calcul d'ETA et la détection d'approche sont serveur : l'annonce
+// vocale locale n'est qu'un confort pour le chauffeur. ⚠️ MOCK : sans GPS
+// réel, une simulation le long de l'axe pilote tient lieu de flux.
 // ============================================================
 
 library;
@@ -19,6 +22,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../domain/models.dart';
 import 'app_providers.dart';
+import 'gps_policy.dart';
 import 'notifications_controller.dart';
 import 'sync_controller.dart';
 import 'trip_controller.dart';
@@ -35,6 +39,9 @@ class GpsState {
     this.sentBatches = 0,
     this.deviceGps = false,
     this.accuracyM = 6,
+    this.mode = ModeGps.route,
+    this.pointsCollectes = 0,
+    this.fluxActif = false,
   });
 
   final double lat;
@@ -53,6 +60,15 @@ class GpsState {
   final int bufferedPoints;
   final int sentBatches;
 
+  /// Fréquence de collecte en cours (adaptative).
+  final ModeGps mode;
+
+  /// Positions collectées depuis le lancement (mesure batterie / données).
+  final int pointsCollectes;
+
+  /// Flux GPS réel ouvert (voyage actif, y compris écran éteint).
+  final bool fluxActif;
+
   GpsState copyWith({
     double? lat,
     double? lng,
@@ -63,6 +79,9 @@ class GpsState {
     int? sentBatches,
     bool? deviceGps,
     double? accuracyM,
+    ModeGps? mode,
+    int? pointsCollectes,
+    bool? fluxActif,
   }) => GpsState(
     lat: lat ?? this.lat,
     lng: lng ?? this.lng,
@@ -73,6 +92,9 @@ class GpsState {
     sentBatches: sentBatches ?? this.sentBatches,
     deviceGps: deviceGps ?? this.deviceGps,
     accuracyM: accuracyM ?? this.accuracyM,
+    mode: mode ?? this.mode,
+    pointsCollectes: pointsCollectes ?? this.pointsCollectes,
+    fluxActif: fluxActif ?? this.fluxActif,
   );
 }
 
@@ -90,16 +112,23 @@ double haversineKm(double lat1, double lng1, double lat2, double lng2) {
   return 2 * r * math.asin(math.sqrt(a.toDouble()));
 }
 
+/// Le GPS ne tourne que pendant le voyage actif (règle GPS-001).
+bool voyageActif(DriverPhase phase) =>
+    phase == DriverPhase.enRoute || phase == DriverPhase.aLArret;
+
 class GpsController extends Notifier<GpsState> {
   Timer? _timer;
+  StreamSubscription<Position>? _device;
   final _rng = math.Random();
   bool _announced1km = false;
   bool _announcedArrival = false;
   String? _segmentKey;
+  PolitiqueGps politique = PolitiqueGps.defaut;
 
   /// Pas de simulation (km par seconde) — accéléré pour la démonstration.
   static const _kmPerTick = 1.6;
-  static const _batchSize = 10;
+
+  TamponPositions get _tampon => TamponPositions(ref.read(sharedPrefsProvider));
 
   @override
   GpsState build() {
@@ -111,11 +140,26 @@ class GpsController extends Notifier<GpsState> {
     final trip = ref.read(tripProvider);
     final s = trip.voyage.currentStop;
     scheduleMicrotask(() => _sync(trip.phase));
-    return GpsState(lat: s.lat, lng: s.lng);
+    // Reprise d'état : positions non envoyées avant une coupure.
+    return GpsState(
+      lat: s.lat,
+      lng: s.lng,
+      bufferedPoints: _tampon.lire().length,
+    );
   }
 
   void _sync(DriverPhase phase) {
-    if (state.deviceGps) return;
+    final actif = voyageActif(phase) && state.tracking;
+    if (state.deviceGps) {
+      _timer?.cancel();
+      _timer = null;
+      if (actif && _device == null) {
+        _ouvrirFlux(state.mode);
+      } else if (!actif) {
+        _fermerFlux();
+      }
+      return;
+    }
     final moving = phase == DriverPhase.enRoute && state.tracking;
     if (moving && _timer == null) {
       _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
@@ -125,14 +169,7 @@ class GpsController extends Notifier<GpsState> {
       final trip = ref.read(tripProvider);
       if (phase != DriverPhase.enRoute) {
         final s = trip.voyage.currentStop;
-        state = GpsState(
-          lat: s.lat,
-          lng: s.lng,
-          tracking: state.tracking,
-          bufferedPoints: state.bufferedPoints,
-          sentBatches: state.sentBatches,
-          accuracyM: state.accuracyM,
-        );
+        state = state.copyWith(lat: s.lat, lng: s.lng, speedKmh: 0);
       }
     }
   }
@@ -142,14 +179,11 @@ class GpsController extends Notifier<GpsState> {
     _sync(ref.read(tripProvider).phase);
   }
 
-  StreamSubscription<Position>? _device;
-
   /// Bascule sur le GPS réel du téléphone (hors simulation de démo).
   /// Renvoie un message d'erreur si la localisation est refusée.
   Future<String?> useDeviceGps(bool on) async {
-    await _device?.cancel();
-    _device = null;
     if (!on) {
+      _fermerFlux();
       state = state.copyWith(deviceGps: false);
       _sync(ref.read(tripProvider).phase);
       return null;
@@ -166,76 +200,121 @@ class GpsController extends Notifier<GpsState> {
           perm == LocationPermission.deniedForever) {
         return 'Autorisation de localisation refusée.';
       }
-      _timer?.cancel();
-      _timer = null;
       state = state.copyWith(deviceGps: true);
-      _device =
-          Geolocator.getPositionStream(
-            locationSettings: const LocationSettings(
-              accuracy: LocationAccuracy.high,
-              distanceFilter: 25,
-            ),
-          ).listen((p) {
-            final buffered = state.bufferedPoints + 1;
-            final flush = buffered >= _batchSize;
-            if (flush) {
-              ref
-                  .read(syncProvider.notifier)
-                  .enqueue('POSITIONS', 'Lot de $buffered positions GPS');
-            }
-            state = state.copyWith(
-              lat: p.latitude,
-              lng: p.longitude,
-              speedKmh: math.max(0, p.speed * 3.6),
-              accuracyM: p.accuracy,
-              bufferedPoints: flush ? 0 : buffered,
-              sentBatches: flush ? state.sentBatches + 1 : null,
-            );
-          }, onError: (Object _) {});
+      _sync(ref.read(tripProvider).phase);
       return null;
     } catch (_) {
       return 'GPS indisponible sur cet appareil.';
     }
   }
 
+  void _ouvrirFlux(ModeGps mode) {
+    _device?.cancel();
+    try {
+      _device = Geolocator.getPositionStream(
+        locationSettings: politique.reglages(mode),
+      ).listen(_surPosition, onError: (Object _) {});
+      state = state.copyWith(fluxActif: true, mode: mode);
+    } catch (_) {
+      _device = null;
+      state = state.copyWith(fluxActif: false);
+    }
+  }
+
+  void _fermerFlux() {
+    _device?.cancel();
+    _device = null;
+    if (state.fluxActif) state = state.copyWith(fluxActif: false);
+  }
+
+  void _surPosition(Position p) {
+    final next = ref.read(tripProvider).voyage.nextStop;
+    final restant = next == null
+        ? null
+        : haversineKm(p.latitude, p.longitude, next.lat, next.lng);
+    final vitesse = math.max(0, p.speed * 3.6).toDouble();
+    _enregistrer(
+      PointGps(
+        lat: p.latitude,
+        lng: p.longitude,
+        horodatage: p.timestamp,
+        precisionM: p.accuracy,
+        vitesseKmh: vitesse,
+      ),
+      distanceToNextKm: restant,
+    );
+    if (next != null && restant != null) _verifierApproche(next, restant);
+    // Fréquence adaptative : on rouvre le flux si le mode change.
+    final mode = politique.modePour(
+      distanceProchainArretKm: restant,
+      vitesseKmh: vitesse,
+    );
+    if (mode != state.mode && _device != null) _ouvrirFlux(mode);
+  }
+
+  /// Tampon local puis envoi par lots (heure terrain + appareil côté serveur).
+  void _enregistrer(PointGps point, {double? distanceToNextKm}) {
+    final tampon = _tampon;
+    tampon.ajouter(point);
+    var lots = state.sentBatches;
+    final lot = tampon.extraireLot(politique.tailleLot);
+    if (lot != null) {
+      ref
+          .read(syncProvider.notifier)
+          .enqueue('POSITIONS', 'Lot de ${lot.length} positions GPS');
+      lots++;
+    }
+    state = state.copyWith(
+      lat: point.lat,
+      lng: point.lng,
+      speedKmh: point.vitesseKmh,
+      accuracyM: point.precisionM,
+      distanceToNextKm: distanceToNextKm,
+      bufferedPoints: tampon.lire().length,
+      sentBatches: lots,
+      pointsCollectes: state.pointsCollectes + 1,
+    );
+  }
+
   void _tick() {
     final trip = ref.read(tripProvider);
     final next = trip.voyage.nextStop;
     if (next == null) return;
-    final key = '${trip.voyage.currentStopIndex}';
-    if (_segmentKey != key) {
-      _segmentKey = key;
-      _announced1km = false;
-      _announcedArrival = false;
-    }
     final dist = haversineKm(state.lat, state.lng, next.lat, next.lng);
     final step = math.min(_kmPerTick, dist);
     final f = dist == 0 ? 1.0 : step / dist;
     final lat = state.lat + (next.lat - state.lat) * f;
     final lng = state.lng + (next.lng - state.lng) * f;
     final remaining = math.max(0.0, dist - step);
-    final buffered = state.bufferedPoints + 1;
-    var batches = state.sentBatches;
-    var bufferAfter = buffered;
-    if (buffered >= _batchSize) {
-      // Envoi par lots (heure terrain + identifiant appareil côté serveur).
-      ref
-          .read(syncProvider.notifier)
-          .enqueue('POSITIONS', 'Lot de $buffered positions GPS');
-      batches++;
-      bufferAfter = 0;
-    }
-    state = state.copyWith(
-      lat: lat,
-      lng: lng,
-      speedKmh: remaining < 2
-          ? 32 + _rng.nextInt(12).toDouble()
-          : 78 + _rng.nextInt(18).toDouble(),
+    final vitesse = remaining < 2
+        ? 32 + _rng.nextInt(12).toDouble()
+        : 78 + _rng.nextInt(18).toDouble();
+    _enregistrer(
+      PointGps(
+        lat: lat,
+        lng: lng,
+        horodatage: DateTime.now(),
+        precisionM: 6,
+        vitesseKmh: vitesse,
+      ),
       distanceToNextKm: remaining,
-      bufferedPoints: bufferAfter,
-      sentBatches: batches,
     );
+    state = state.copyWith(
+      mode: politique.modePour(
+        distanceProchainArretKm: remaining,
+        vitesseKmh: vitesse,
+      ),
+    );
+    _verifierApproche(next, remaining);
+  }
 
+  void _verifierApproche(Stop next, double remaining) {
+    final key = '${ref.read(tripProvider).voyage.currentStopIndex}';
+    if (_segmentKey != key) {
+      _segmentKey = key;
+      _announced1km = false;
+      _announcedArrival = false;
+    }
     if (!_announced1km && remaining <= 1.0 && remaining > 0.05) {
       _announced1km = true;
       _alert(

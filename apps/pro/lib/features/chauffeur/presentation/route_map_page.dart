@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/application/gps_controller.dart';
+import '../../../core/application/gps_policy.dart';
 import '../../../core/application/trip_controller.dart';
 import '../../../core/domain/models.dart';
 import '../../../core/ui/pro_kit.dart';
@@ -118,6 +119,7 @@ class RouteMapPage extends ConsumerWidget {
                               style: TextStyle(fontWeight: FontWeight.w700),
                             ),
                             subtitle: const Text(
+                              'Suivi écran éteint pendant le voyage actif. '
                               'Désactivé : trajet simulé (démonstration)',
                             ),
                           ),
@@ -126,6 +128,15 @@ class RouteMapPage extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
+                  InfoBanner(
+                    icon: Icons.speed_rounded,
+                    message:
+                        'Fréquence ${gps.mode.libelle.toLowerCase()} : '
+                        '${gps.mode == ModeGps.rapproche ? 'toutes les 10 s (ville, approche d’arrêt)' : 'toutes les 30 s (route)'}. '
+                        '${gps.pointsCollectes} position(s) collectée(s) depuis le lancement'
+                        '${gps.fluxActif ? ' — suivi actif même écran éteint.' : '.'}',
+                  ),
+                  const SizedBox(height: 8),
                   InfoBanner(
                     icon: Icons.sd_storage_rounded,
                     message:
