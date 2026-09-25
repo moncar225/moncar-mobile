@@ -5,7 +5,9 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:core_qr/core_qr.dart';
 
 void main() {
-  testWidgets('MoncarQrScanner affiche son app bar et sa consigne', (tester) async {
+  testWidgets('MoncarQrScanner affiche son app bar et sa consigne', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         home: MoncarQrScanner(

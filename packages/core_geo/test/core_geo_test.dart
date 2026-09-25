@@ -5,7 +5,9 @@ import 'package:latlong2/latlong.dart';
 import 'package:core_geo/core_geo.dart';
 
 void main() {
-  testWidgets('MoncarMap se construit avec un centre et un zoom', (tester) async {
+  testWidgets('MoncarMap se construit avec un centre et un zoom', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(

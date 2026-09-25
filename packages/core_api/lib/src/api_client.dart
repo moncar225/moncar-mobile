@@ -21,8 +21,9 @@ class ApiClient {
     Dio? dio,
     Map<String, String>? headers,
     IncidentIdExtractor? incidentIdExtractor,
-  })  : _dio = dio ?? Dio(),
-        _incidentIdExtractor = incidentIdExtractor ?? _defaultIncidentIdExtractor {
+  }) : _dio = dio ?? Dio(),
+       _incidentIdExtractor =
+           incidentIdExtractor ?? _defaultIncidentIdExtractor {
     if (dio == null) {
       _dio.options = BaseOptions(
         baseUrl: baseUrl,
@@ -62,56 +63,61 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? query,
     Map<String, String>? headers,
-  }) =>
-      _send(() => _dio.get<dynamic>(
-            path,
-            queryParameters: query,
-            options: Options(headers: headers),
-          ));
+  }) => _send(
+    () => _dio.get<dynamic>(
+      path,
+      queryParameters: query,
+      options: Options(headers: headers),
+    ),
+  );
 
   Future<dynamic> post(
     String path, {
     Object? body,
     Map<String, String>? headers,
-  }) =>
-      _send(() => _dio.post<dynamic>(
-            path,
-            data: body,
-            options: Options(headers: headers),
-          ));
+  }) => _send(
+    () => _dio.post<dynamic>(
+      path,
+      data: body,
+      options: Options(headers: headers),
+    ),
+  );
 
   Future<dynamic> put(
     String path, {
     Object? body,
     Map<String, String>? headers,
-  }) =>
-      _send(() => _dio.put<dynamic>(
-            path,
-            data: body,
-            options: Options(headers: headers),
-          ));
+  }) => _send(
+    () => _dio.put<dynamic>(
+      path,
+      data: body,
+      options: Options(headers: headers),
+    ),
+  );
 
   Future<dynamic> patch(
     String path, {
     Object? body,
     Map<String, String>? headers,
-  }) =>
-      _send(() => _dio.patch<dynamic>(
-            path,
-            data: body,
-            options: Options(headers: headers),
-          ));
+  }) => _send(
+    () => _dio.patch<dynamic>(
+      path,
+      data: body,
+      options: Options(headers: headers),
+    ),
+  );
 
   Future<dynamic> delete(
     String path, {
     Object? body,
     Map<String, String>? headers,
-  }) =>
-      _send(() => _dio.delete<dynamic>(
-            path,
-            data: body,
-            options: Options(headers: headers),
-          ));
+  }) => _send(
+    () => _dio.delete<dynamic>(
+      path,
+      data: body,
+      options: Options(headers: headers),
+    ),
+  );
 
   Future<dynamic> _send(Future<Response<dynamic>> Function() request) async {
     try {
@@ -133,27 +139,35 @@ class ApiClient {
 
     if (response == null) {
       // Pas de réponse : réseau indisponible ou timeout.
-      handler.reject(DioException(
-        requestOptions: error.requestOptions,
-        error: ApiException(
-          statusCode: -1,
-          message: 'Connexion impossible. Vérifiez votre connexion internet puis réessayez.',
-          origin: error,
+      handler.reject(
+        DioException(
+          requestOptions: error.requestOptions,
+          error: ApiException(
+            statusCode: -1,
+            message:
+                'Connexion impossible. Vérifiez votre connexion internet puis réessayez.',
+            origin: error,
+          ),
         ),
-      ));
+      );
       return;
     }
 
     final serverMessage = _extractServerMessage(response.data);
-    handler.reject(DioException(
-      requestOptions: error.requestOptions,
-      error: ApiException(
-        statusCode: response.statusCode ?? -1,
-        message: messageForStatusCode(response.statusCode ?? -1, fallback: serverMessage),
-        incidentId: _incidentIdExtractor(response),
-        origin: error,
+    handler.reject(
+      DioException(
+        requestOptions: error.requestOptions,
+        error: ApiException(
+          statusCode: response.statusCode ?? -1,
+          message: messageForStatusCode(
+            response.statusCode ?? -1,
+            fallback: serverMessage,
+          ),
+          incidentId: _incidentIdExtractor(response),
+          origin: error,
+        ),
       ),
-    ));
+    );
   }
 
   /// Le message métier du serveur, s'il en fournit un, prime sur le message

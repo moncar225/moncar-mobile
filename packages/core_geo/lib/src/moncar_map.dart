@@ -30,9 +30,7 @@ class MoncarMap extends StatelessWidget {
         initialCenter: center,
         initialZoom: zoom,
         interactionOptions: InteractionOptions(
-          flags: interactive
-              ? InteractiveFlag.all
-              : InteractiveFlag.none,
+          flags: interactive ? InteractiveFlag.all : InteractiveFlag.none,
         ),
       ),
       children: [

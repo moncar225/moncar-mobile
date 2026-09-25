@@ -34,7 +34,10 @@ class MoncarQrScanner extends StatelessWidget {
               alignment: Alignment.bottomCenter,
               child: Container(
                 margin: const EdgeInsets.all(24),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.black54,
                   borderRadius: BorderRadius.circular(12),

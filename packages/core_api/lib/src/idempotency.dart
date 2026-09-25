@@ -22,8 +22,8 @@ class IdempotencyTimestampManager {
     this.timestampHeaderName = 'X-Request-Timestamp',
     this.timestampEnabled = false,
     String Function()? keyGenerator,
-  })  : methods = methods ?? _defaultIdempotentMethods,
-        _keyGenerator = keyGenerator ?? _defaultGenerateKey;
+  }) : methods = methods ?? _defaultIdempotentMethods,
+       _keyGenerator = keyGenerator ?? _defaultGenerateKey;
 
   final Set<String> methods;
   final String headerName;
@@ -35,9 +35,7 @@ class IdempotencyTimestampManager {
 
   static String _defaultGenerateKey() {
     final bytes = List<int>.generate(16, (_) => _random.nextInt(256));
-    return bytes
-        .map((b) => b.toRadixString(16).padLeft(2, '0'))
-        .join();
+    return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
   }
 
   void enrichHeaders(String method, Map<String, dynamic> headers) {
@@ -46,8 +44,10 @@ class IdempotencyTimestampManager {
       headers[headerName] = _keyGenerator();
     }
     if (timestampEnabled && !headers.containsKey(timestampHeaderName)) {
-      headers[timestampHeaderName] =
-          DateTime.now().toUtc().millisecondsSinceEpoch.toString();
+      headers[timestampHeaderName] = DateTime.now()
+          .toUtc()
+          .millisecondsSinceEpoch
+          .toString();
     }
   }
 }
