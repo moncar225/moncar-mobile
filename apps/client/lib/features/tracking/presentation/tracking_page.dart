@@ -1,10 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../shared/foundation.dart';
+import '../application/alerte_descente.dart';
 
 ({String label, Color color, Color bg, IconData icon}) _stateMeta(
   TrackingState s,
@@ -66,9 +69,19 @@ class _TrackingPageState extends ConsumerState<TrackingPage> {
   BusPosition? _tracking;
   Timer? _timer;
 
+  /// Arrêt de descente suivi (celui du billet, modifiable).
+  int? _arretIndex;
+  EtapeDescente _etape = EtapeDescente.enRoute;
+  bool _voix = true;
+  final _annonce = AnnonceVocale();
+
+  /// Lien de partage temporaire (⚠ durée de validité à arbitrer).
+  ({String lien, DateTime expire})? _partage;
+
   @override
   void initState() {
     super.initState();
+    _arretIndex = _arretDuBillet();
     _refresh();
     _timer = Timer.periodic(const Duration(seconds: 3), (_) => _refresh());
   }
@@ -79,10 +92,83 @@ class _TrackingPageState extends ConsumerState<TrackingPage> {
     super.dispose();
   }
 
+  List<Stop> get _arrets =>
+      ref.read(mockStoreProvider).findTrip(widget.tripId)?.stops ?? const [];
+
+  /// Arrêt de descente du billet du passager pour ce voyage, sinon terminus.
+  int? _arretDuBillet() {
+    final arrets = _arrets;
+    if (arrets.isEmpty) return null;
+    final billets = ref
+        .read(mockStoreProvider)
+        .tickets
+        .where((t) => t.tripId == widget.tripId);
+    if (billets.isNotEmpty) {
+      final i = arrets.indexWhere(
+        (a) => a.label == billets.first.alightingStop,
+      );
+      if (i > 0) return i;
+    }
+    return arrets.length - 1;
+  }
+
   void _refresh() {
     if (!mounted) return;
-    setState(
-      () => _tracking = ref.read(mockStoreProvider).getTracking(widget.tripId),
+    final t = ref.read(mockStoreProvider).getTracking(widget.tripId);
+    final index = _arretIndex;
+    final etape = t == null || index == null
+        ? _etape
+        : etapeDescente(bus: t, arrets: _arrets, indexArret: index);
+    final nouvelle = etape.index > _etape.index;
+    setState(() {
+      _tracking = t;
+      _etape = etape;
+    });
+    if (nouvelle) _declencher(etape);
+  }
+
+  /// Alerte prioritaire : vibration, bandeau, voix (option CDC).
+  void _declencher(EtapeDescente etape) {
+    if (etape == EtapeDescente.enRoute) return;
+    final message = etape == EtapeDescente.proche
+        ? messageProche
+        : messageArrivee;
+    HapticFeedback.heavyImpact();
+    if (_voix) _annonce.dire(message);
+    ScaffoldMessenger.maybeOf(context)
+      ?..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(seconds: 8),
+          backgroundColor: MoncarColors.accent,
+        ),
+      );
+  }
+
+  void _changerArret(int index) {
+    setState(() {
+      _arretIndex = index;
+      _etape = EtapeDescente.enRoute;
+    });
+    _refresh();
+  }
+
+  Future<void> _partager(String trajet) async {
+    // En production : POST /voyages/{id}/partage renvoie un lien signé et
+    // temporaire, limité à la position, la progression et l'ETA (CDC §18).
+    final expire = DateTime.now().add(const Duration(hours: 6));
+    final jeton = DateTime.now().millisecondsSinceEpoch.toRadixString(36);
+    final lien = 'https://moncar.ci/suivi/${widget.tripId}-$jeton';
+    setState(() => _partage = (lien: lien, expire: expire));
+    String p(int n) => n.toString().padLeft(2, '0');
+    await SharePlus.instance.share(
+      ShareParams(
+        text:
+            'Suivez mon trajet $trajet en direct sur MON CAR : $lien '
+            '(position, progression et heure d’arrivée — lien valable '
+            'jusqu’à ${p(expire.hour)}h${p(expire.minute)}).',
+      ),
     );
   }
 
@@ -299,44 +385,29 @@ class _TrackingPageState extends ConsumerState<TrackingPage> {
               ],
             ),
           ),
+          if (t.state != TrackingState.termine && _arretIndex != null) ...[
+            const SizedBox(height: 16),
+            _AlerteDescenteCard(
+              arrets: trip?.stops ?? const [],
+              indexArret: _arretIndex!,
+              premierChoix: t.currentStopIndex + 1,
+              etape: _etape,
+              bus: t,
+              voix: _voix,
+              onVoix: (v) => setState(() => _voix = v),
+              onArret: _changerArret,
+            ),
+          ],
           if (t.state != TrackingState.termine) ...[
             const SizedBox(height: 16),
-            MoncarCard(
-              padding: const EdgeInsets.all(14),
-              color: MoncarColors.accentSoft.withValues(alpha: 0.4),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.navigation_outlined,
-                    size: 16,
-                    color: MoncarColors.accent,
-                  ),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Alerte de descente',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: MoncarColors.ink,
-                          ),
-                        ),
-                        Text(
-                          'Vous serez notifié 15 min avant votre arrêt de descente.',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: MoncarColors.inkMut,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+            _PartageCard(
+              partage: _partage,
+              onPartager: () => _partager(
+                trip != null
+                    ? '${trip.originCityName} → ${trip.destinationCityName}'
+                    : '',
               ),
+              onArreter: () => setState(() => _partage = null),
             ),
           ],
           if (t.state == TrackingState.horsLigne) ...[
@@ -543,6 +614,205 @@ class _StopRow extends StatelessWidget {
                 ],
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Carte « Alerte de descente » : arrêt suivi, distance, état, voix.
+class _AlerteDescenteCard extends StatelessWidget {
+  const _AlerteDescenteCard({
+    required this.arrets,
+    required this.indexArret,
+    required this.premierChoix,
+    required this.etape,
+    required this.bus,
+    required this.voix,
+    required this.onVoix,
+    required this.onArret,
+  });
+
+  final List<Stop> arrets;
+  final int indexArret;
+  final int premierChoix;
+  final EtapeDescente etape;
+  final BusPosition bus;
+  final bool voix;
+  final ValueChanged<bool> onVoix;
+  final ValueChanged<int> onArret;
+
+  @override
+  Widget build(BuildContext context) {
+    final cible = indexArret < arrets.length ? arrets[indexArret] : null;
+    final restant = cible == null
+        ? null
+        : distanceKm(
+            bus.latitude,
+            bus.longitude,
+            cible.latitude,
+            cible.longitude,
+          );
+    final (couleur, fond, texte) = switch (etape) {
+      EtapeDescente.arrive => (
+        MoncarColors.success,
+        MoncarColors.successSoft,
+        messageArrivee,
+      ),
+      EtapeDescente.proche => (
+        MoncarColors.accent,
+        MoncarColors.accentSoft,
+        messageProche,
+      ),
+      EtapeDescente.enRoute => (
+        MoncarColors.brand,
+        MoncarColors.brandSoft,
+        restant == null
+            ? 'Vous serez alerté à l’approche de votre arrêt.'
+            : 'Encore ${restant.toStringAsFixed(restant < 10 ? 1 : 0)} km '
+                  '— alerte à environ 1 km.',
+      ),
+    };
+    final choix = <int>[
+      for (var i = premierChoix.clamp(1, arrets.length); i < arrets.length; i++)
+        i,
+      if (indexArret < premierChoix) indexArret,
+    ];
+    return MoncarCard(
+      padding: const EdgeInsets.all(14),
+      color: fond.withValues(alpha: 0.6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(
+                etape == EtapeDescente.enRoute
+                    ? Icons.navigation_outlined
+                    : Icons.notifications_active,
+                size: 18,
+                color: couleur,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Alerte de descente',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: MoncarColors.ink,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            texte,
+            style: TextStyle(
+              fontSize: etape == EtapeDescente.enRoute ? 12 : 14,
+              fontWeight: etape == EtapeDescente.enRoute
+                  ? FontWeight.w400
+                  : FontWeight.w700,
+              color: etape == EtapeDescente.enRoute
+                  ? MoncarColors.inkMut
+                  : couleur,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (choix.isNotEmpty)
+            DropdownButtonFormField<int>(
+              initialValue: indexArret,
+              decoration: const InputDecoration(
+                labelText: 'Mon arrêt de descente',
+                isDense: true,
+              ),
+              items: [
+                for (final i in choix)
+                  DropdownMenuItem(value: i, child: Text(arrets[i].label)),
+              ],
+              onChanged: etape == EtapeDescente.arrive
+                  ? null
+                  : (v) {
+                      if (v != null) onArret(v);
+                    },
+            ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+            value: voix,
+            onChanged: onVoix,
+            title: const Text('Annonce vocale'),
+            subtitle: const Text('En plus de la vibration et du message'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Partage temporaire du trajet avec un proche (CDC §18).
+class _PartageCard extends StatelessWidget {
+  const _PartageCard({
+    required this.partage,
+    required this.onPartager,
+    required this.onArreter,
+  });
+
+  final ({String lien, DateTime expire})? partage;
+  final VoidCallback onPartager;
+  final VoidCallback onArreter;
+
+  @override
+  Widget build(BuildContext context) {
+    String p(int n) => n.toString().padLeft(2, '0');
+    final actif = partage;
+    return MoncarCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Partager mon trajet',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: MoncarColors.ink,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            actif == null
+                ? 'Un proche suit la position du car, la progression et '
+                      'l’heure d’arrivée — rien d’autre. Accès temporaire.'
+                : 'Partage actif jusqu’à '
+                      '${p(actif.expire.hour)}h${p(actif.expire.minute)}.',
+            style: TextStyle(fontSize: 12, color: MoncarColors.inkMut),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: MoncarButton(
+                  label: actif == null
+                      ? 'Partager le trajet'
+                      : 'Partager à nouveau',
+                  icon: Icons.share_outlined,
+                  variant: MoncarButtonVariant.soft,
+                  size: MoncarButtonSize.md,
+                  expand: true,
+                  onPressed: onPartager,
+                ),
+              ),
+              if (actif != null) ...[
+                const SizedBox(width: 8),
+                MoncarButton(
+                  label: 'Arrêter',
+                  variant: MoncarButtonVariant.ghost,
+                  size: MoncarButtonSize.md,
+                  onPressed: onArreter,
+                ),
+              ],
+            ],
           ),
         ],
       ),

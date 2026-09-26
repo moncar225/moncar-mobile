@@ -181,6 +181,38 @@ class _HelpPageState extends State<HelpPage> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
+          MoncarCard(
+            onTap: () => context.push('/assistant'),
+            margin: const EdgeInsets.only(bottom: 12),
+            child: Row(
+              children: [
+                Icon(Icons.smart_toy_outlined, color: MoncarColors.brand),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Assistant MON CAR',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: MoncarColors.ink,
+                        ),
+                      ),
+                      Text(
+                        'Une réponse immédiate, à toute heure',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: MoncarColors.inkMut,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: MoncarColors.inkMut),
+              ],
+            ),
+          ),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(

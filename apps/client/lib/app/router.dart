@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/assistant/presentation/assistant_page.dart';
 import '../features/auth/presentation/inscription_page.dart';
 import '../features/auth/presentation/login_page.dart';
 import '../features/auth/presentation/onboarding_page.dart';
@@ -344,6 +345,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/help',
             name: 'help',
             builder: (_, _) => const HelpPage(),
+          ),
+          GoRoute(
+            path: '/assistant',
+            name: 'assistant',
+            builder: (_, _) => const AssistantPage(),
           ),
           GoRoute(
             path: '/settings',
